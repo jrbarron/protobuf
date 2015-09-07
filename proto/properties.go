@@ -797,3 +797,17 @@ func RegisterEnum(typeName string, unusedNameMap map[int32]string, valueMap map[
 	}
 	enumValueMaps[typeName] = valueMap
 }
+
+// LookupEnumValue returns the integer value corresponding to the string value of
+// a given enum. If the string is quoted, the quotes will be stripped.
+func LookupEnumValue(typeName, enumName string) (int32, bool) {
+	if enumValues, ok := enumValueMaps[typeName]; !ok {
+		return -1, ok
+	} else {
+		if strings.HasPrefix(enumName, "\"") {
+			enumName = enumName[1 : len(enumName)-1]
+		}
+		val, ok := enumValues[enumName]
+		return val, ok
+	}
+}

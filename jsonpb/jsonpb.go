@@ -325,8 +325,28 @@ func unmarshalValue(target reflect.Value, inputValue json.RawMessage) error {
 			fieldName := jsonFieldName(ft)
 
 			if valueForField, ok := jsonFields[fieldName]; ok {
-				if err := unmarshalValue(target.Field(i), valueForField); err != nil {
-					return err
+
+				// Handle enums
+				handledAsEnum := false
+				protoInfo := target.Type().Field(i).Tag.Get("protobuf")
+				tagParts := strings.Split(protoInfo, ",")
+				for j := 0; j < len(tagParts); j++ {
+					if strings.HasPrefix(tagParts[j], "enum=") {
+						enumName := tagParts[j][5:]
+						if enumValue, ok := proto.LookupEnumValue(enumName, string(valueForField)); ok {
+							if target.Field(i).Kind() == reflect.Int32 {
+								target.Field(i).SetInt(int64(enumValue))
+								handledAsEnum = true
+								break
+							}
+						}
+					}
+				}
+
+				if !handledAsEnum {
+					if err := unmarshalValue(target.Field(i), valueForField); err != nil {
+						return err
+					}
 				}
 				delete(jsonFields, fieldName)
 			}
